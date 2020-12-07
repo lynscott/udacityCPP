@@ -132,27 +132,24 @@ long LinuxParser::Jiffies() {
 // Done: Read and return the number of active jiffies for a PID
 // REMOVE: [[maybe_unused]] once you define the function
 long LinuxParser::ActiveJiffies(int pid) { 
-    float utime, stime, cutime, cstime, starttime;
-    const string directory = kProcDirectory + std::to_string(pid) + kStatFilename;
 
-    std::ifstream filestream(directory);
-    string line;
-    getline(filestream, line);
-    vector<string> values = parse_values(line);
+  string utime, stime, cutime, cstime, line, value;
+  const string directory = kProcDirectory + std::to_string(pid) + kStatFilename;
+  std::ifstream filestream(directory);
 
-    utime = std::stof(values[13]);
-    stime = std::stof(values[14]);
-    cutime = std::stof(values[15]);
-    cstime = std::stof(values[16]);
-    starttime = std::stol(values[21]);
-
-    long int uptime = LinuxParser::UpTime();
-    float hertz = sysconf(_SC_CLK_TCK);
-
-    float total_time = utime + stime + cutime + cstime;
-    float seconds = uptime - (starttime / hertz);
-
-  return ((total_time / hertz) / seconds) * 100;
+  if (filestream.is_open()) {
+    while (std::getline(filestream, line)) {
+      std::istringstream linestream(line);
+      for(int i = 0; i < 13; i++) {
+        linestream >> value;
+      }
+      linestream >> utime >> stime >> cutime >> cstime; 
+      float total_time = std::stof(utime) + std::stof(stime) + std::stof(cutime) + std::stof(cstime);
+      return total_time;
+    }
+  }
+  filestream.close();
+  return 0;
 }
 
 // Done: Read and return the number of active jiffies for the system
@@ -314,11 +311,12 @@ string LinuxParser::User(int pid) {
 // REMOVE: [[maybe_unused]] once you define the function
 long LinuxParser::UpTime(int pid) { 
   const string directory = kProcDirectory + to_string(pid) + kStatFilename;
+  string value;
   std::ifstream filestream(directory);
-  string line;
-  getline(filestream, line);
-  vector<string> values = parse_values(line);
-
-  long clock_ticks = std::stol(values[21]);
-  return clock_ticks / sysconf(_SC_CLK_TCK); 
+  if (filestream.is_open()){
+    for (int i = 0; i < 22; ++i) filestream >> value;
+      filestream.close();
+      return LinuxParser::UpTime() - std::stol(value) / sysconf(_SC_CLK_TCK);
+  }
+  return 0;
 }
