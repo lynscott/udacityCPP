@@ -23,6 +23,7 @@ vector<Process>& System::Processes() {
     for (std::size_t i = 0; i < pids.size(); i++) {
        processes_.push_back(Process(pids[i]));
     }
+  	std::sort(processes_.begin(), processes_.end());
     return processes_;
 }
 
